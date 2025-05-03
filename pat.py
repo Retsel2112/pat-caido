@@ -1,7 +1,10 @@
+#!/usr/bin/env python
 import argparse
 import os
+import shutil
 import sqlite3
 import sys
+import tarfile
 from urllib.request import pathname2url
 
 class CaidoUtil:
@@ -10,7 +13,9 @@ class CaidoUtil:
         self.data_path = caido_home
         if not caido_home:
             self.data_path = self.get_data_path()
+        self.project_path = os.path.join(self.data_path, 'projects')
         db_file = os.path.join(self.data_path, 'projects.db')
+        # IDEA: rw mode to update the DB?
         db_uri = 'file:{}?mode=r'.format(pathname2url(db_file))
         # Use uri-like path to prevent file creation
         try:
@@ -44,12 +49,16 @@ class CaidoUtil:
         loft =  res.fetchall()
         results = []
         for row in loft:
-            results.append({'id': row[0], 'name': row[1]})
+            # "archived" projects w/o a Caido launch will still be in the DB
+            # remove results without project folders
+            print(os.path.join(self.project_path, row[0]))
+            if os.path.isdir(os.path.join(self.project_path, row[0])):
+                results.append({'id': row[0], 'name': row[1]})
         return results
 
     def get_archived_projects(self):
         # Get "archived" projects - tgz files like NAME-UUID.tgz in the data path
-        dlist = os.listdir(self.data_path)
+        dlist = os.listdir(self.project_path)
         archived_projects = []
         for fname in dlist:
             if fname.endswith('.tgz'):
@@ -58,7 +67,19 @@ class CaidoUtil:
                     archived_projects.append({'id': '-'.join(fnparts[1:]), 'name': fnparts[0]})
         return archived_projects
 
+    def get_project_directory_by_id(self, projectid):
+        return os.path.join(self.project_path, projectid)
 
+    def get_project_directory_by_name(self, name):
+        candidates = self.get_active_projects()
+        for ap in candidates:
+            if ap['name'] == name:
+                return os.path.join(self.project_path, ap['id'])
+        return None
+    
+    def get_archive_directory(self):
+        ''' Default archive directory is same as project path, but reasonable to be changed'''
+        return self.project_path
 
 
 #archive active project
@@ -93,6 +114,7 @@ if __name__ == '__main__':
             epilog='')
     parser.add_argument('operation', choices=['list', 'archive', 'restore'])
     parser.add_argument('wsname', default=None, nargs='?')
+    parser.add_argument('-p', '--preserve', action='store_true')
     args = parser.parse_args()
     if args.operation == 'list':
         active = cutil.get_active_projects()
@@ -109,8 +131,54 @@ if __name__ == '__main__':
     else:
         if args.wsname == None:
             print('error: operation requires a workspace name')
+            sys.exit(1)
         if args.operation == 'archive':
-            pass
+            # It's about here where I wonder if I should have {name: id} instead 
+            # Shouldn't be a problem even to linear search the restore list
+            #   even if it has a handful of archived projects.
+            active = cutil.get_active_projects()
+            archive_target = None
+            for ap in active:
+                if ap['name'] == args.wsname:
+                    archive_target = ap
+                    break
+            else:
+                print('error: unable to find workspace')
+                sys.exit(2)
+            # archive the folder in the uuid directory
+            tgz_name = '%s-%s.tgz' % (archive_target['name'], archive_target['id'])
+            tgz_path = os.path.join(cutil.get_archive_directory(), tgz_name)
+            src_directory = cutil.get_project_directory_by_id(archive_target['id'])
+            print('Creating archive.')
+            print('This may take some time, depending on project size')
+            with tarfile.open(tgz_path, "w:gz") as tar:
+                tar.add(src_directory, arcname=os.path.basename(src_directory))
+            if args.preserve:
+                print('Complete.')
+            else:
+                print('Complete. Removing workspace directory.')
+                shutil.rmtree(src_directory)
         elif args.operation == 'restore':
+            active = cutil.get_archived_projects()
+            archive_target = None
+            for ap in archived:
+                if ap['name'] == args.wsname:
+                    archive_target = ap
+                    break
+            else:
+                print('error: unable to find workspace archive')
+                sys.exit(3)
+            # archive the folder in the uuid directory
+            ### tgz_name = '%s-%s.tgz' % (archive_target['name'], archive_target['id'])
+            ### tgz_path = os.path.join(cutil.get_archive_directory(), tgz_name)
+            ### src_directory = cutil.get_project_directory_by_id(archive_target['id'])
+            print('Restoring archive.')
+            print('This may take some time, depending on project size')
+            with tarfile.open(tgz_path, "r:gz") as tar:
+                ### tar.add(src_directory, arcname=os.path.basename(src_directory))
+            if args.preserve:
+                print('Complete.')
+            else:
+                print('Complete. Removing workspace archive.')
             pass
         
