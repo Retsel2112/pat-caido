@@ -77,6 +77,30 @@ class CaidoUtil:
                 return os.path.join(self.project_path, ap['id'])
         return None
     
+    def get_archive_file_by_id(self, projectid):
+        dlist = os.listdir(self.project_path)
+        for fname in dlist:
+            if fname.endswith('.tgz'):
+                fnparts = fname[:-4].rsplit('-',5)
+                if len(fnparts) == 6:
+                    found_id = fnparts[1:]
+                    found_name = fnparts[0]
+                    if projectid == found_id:
+                        return fname
+        return None
+
+    def get_archive_file_by_name(self, name):
+        dlist = os.listdir(self.project_path)
+        for fname in dlist:
+            if fname.endswith('.tgz'):
+                fnparts = fname[:-4].rsplit('-',5)
+                if len(fnparts) == 6:
+                    found_id = fnparts[1:]
+                    found_name = fnparts[0]
+                    if name == found_name:
+                        return fname
+        return None
+    
     def get_archive_directory(self):
         ''' Default archive directory is same as project path, but reasonable to be changed'''
         return self.project_path
@@ -114,7 +138,10 @@ if __name__ == '__main__':
             epilog='')
     parser.add_argument('operation', choices=['list', 'archive', 'restore'])
     parser.add_argument('wsname', default=None, nargs='?')
-    parser.add_argument('-p', '--preserve', action='store_true')
+    parser.add_argument('-p', '--preserve', action='store_true',
+            help='Preserve original content (do not delete workspace/archive)')
+    parser.add_argument('-m', '--modify', action='store_true',
+            help='Modify the Caido projects.db file to reflect changes')
     args = parser.parse_args()
     if args.operation == 'list':
         active = cutil.get_active_projects()
@@ -168,14 +195,18 @@ if __name__ == '__main__':
             else:
                 print('error: unable to find workspace archive')
                 sys.exit(3)
-            # archive the folder in the uuid directory
+            # uncompress the archive to the uuid folder name
+            # TODO - do we need to jam metadata back into the db?
             ### tgz_name = '%s-%s.tgz' % (archive_target['name'], archive_target['id'])
             ### tgz_path = os.path.join(cutil.get_archive_directory(), tgz_name)
-            ### src_directory = cutil.get_project_directory_by_id(archive_target['id'])
+            #Shouldn't need more than the project base directory
+            dst_directory = cutil.get_project_directory_by_id(archive_target['id'])
+            uncomp_directory = os.path.split(dst_directory)[0]
             print('Restoring archive.')
             print('This may take some time, depending on project size')
             with tarfile.open(tgz_path, "r:gz") as tar:
                 ### tar.add(src_directory, arcname=os.path.basename(src_directory))
+                tar.extractall(path=uncomp_directory)
             if args.preserve:
                 print('Complete.')
             else:
