@@ -27,7 +27,7 @@ class CaidoUtil:
             raise
 
     def get_data_path(self):
-        """Expand the home directory and look for the caido storage location"""
+        ''' Expand the home directory and look for the caido storage location'''
         userhome = os.path.expanduser('~')
         # Linux?
         testpath = os.path.join(userhome, '.local', 'share', 'caido')
@@ -43,7 +43,7 @@ class CaidoUtil:
             return testpath
 
     def get_active_projects(self):
-        # Get active projects from sqlite
+        ''' Get active projects from sqlite'''
         cur = self.db.cursor()
         res = cur.execute("SELECT id, name FROM projects")
         loft =  res.fetchall()
@@ -57,7 +57,7 @@ class CaidoUtil:
         return results
 
     def get_archived_projects(self):
-        # Get "archived" projects - tgz files like NAME-UUID.tgz in the data path
+        ''' Get "archived" projects - tgz files like NAME-UUID.tgz in the data path'''
         dlist = os.listdir(self.project_path)
         archived_projects = []
         for fname in dlist:
@@ -68,9 +68,11 @@ class CaidoUtil:
         return archived_projects
 
     def get_project_directory_by_id(self, projectid):
+        ''' Return the full path for a provided project ID. Does not verify existence.'''
         return os.path.join(self.project_path, projectid)
 
     def get_project_directory_by_name(self, name):
+        ''' Return the full path for a provided project name. Requires existence.'''
         candidates = self.get_active_projects()
         for ap in candidates:
             if ap['name'] == name:
@@ -78,6 +80,7 @@ class CaidoUtil:
         return None
     
     def get_archive_file_by_id(self, projectid):
+        ''' Look up the path for an archived project by ID'''
         dlist = os.listdir(self.project_path)
         for fname in dlist:
             if fname.endswith('.tgz'):
@@ -90,6 +93,7 @@ class CaidoUtil:
         return None
 
     def get_archive_file_by_name(self, name):
+        ''' Look up the path for an archived project name'''
         dlist = os.listdir(self.project_path)
         for fname in dlist:
             if fname.endswith('.tgz'):
@@ -104,19 +108,6 @@ class CaidoUtil:
     def get_archive_directory(self):
         ''' Default archive directory is same as project path, but reasonable to be changed'''
         return self.project_path
-
-
-#archive active project
-##determine uuid for name
-##compress to name-uuid.tgz
-##optional: remove original directory recursively
-
-
-
-#unarchive project
-##optional check for two existing active projects
-##grab name-uuid.tgz file
-##uncompress to uuid/
 
 
 
