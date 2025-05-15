@@ -177,7 +177,7 @@ if __name__ == '__main__':
                 print('Complete. Removing workspace directory.')
                 shutil.rmtree(src_directory)
         elif args.operation == 'restore':
-            active = cutil.get_archived_projects()
+            archived = cutil.get_archived_projects()
             archive_target = None
             for ap in archived:
                 if ap['name'] == args.wsname:
@@ -188,8 +188,8 @@ if __name__ == '__main__':
                 sys.exit(3)
             # uncompress the archive to the uuid folder name
             # TODO - do we need to jam metadata back into the db?
-            ### tgz_name = '%s-%s.tgz' % (archive_target['name'], archive_target['id'])
-            ### tgz_path = os.path.join(cutil.get_archive_directory(), tgz_name)
+            tgz_name = '%s-%s.tgz' % (archive_target['name'], archive_target['id'])
+            tgz_path = os.path.join(cutil.get_archive_directory(), tgz_name)
             #Shouldn't need more than the project base directory
             dst_directory = cutil.get_project_directory_by_id(archive_target['id'])
             uncomp_directory = os.path.split(dst_directory)[0]
