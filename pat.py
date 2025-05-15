@@ -121,19 +121,21 @@ class CaidoUtil:
         ''' Default archive directory is same as project path, but reasonable to be changed'''
         return self.project_path
 
-    def db_add(self):
+    # CREATE TABLE IF NOT EXISTS "projects" (
+    #  id text NOT NULL PRIMARY KEY,
+    #  name text NOT NULL,
+    #  version text NOT NULL,
+    #  created_at datetime NOT NULL,
+    #  updated_at datetime NOT NULL,
+    #  "status" TEXT NOT NULL DEFAULT 'ready', selected_at datetime);
+    def db_add(self, projectid):
         pass
 
-    def db_remove(self):
+    def db_remove(self, projectid):
         pass
 
-
-#remove archived project
-#(helper, mostly)
-##grab name-uuid.tgz file
-##?
-##delete it
-
+    def db_record(self, projectid):
+        pass
 
 
 
@@ -184,6 +186,7 @@ if __name__ == '__main__':
             tgz_name = '%s-%s.tgz' % (archive_target['name'], archive_target['id'])
             tgz_path = os.path.join(cutil.get_archive_directory(), tgz_name)
             src_directory = cutil.get_project_directory_by_id(archive_target['id'])
+            cutil.db_record(archive_target['id'])
             print('Creating archive.')
             print('This may take some time, depending on project size')
             with tarfile.open(tgz_path, "w:gz") as tar:
@@ -192,6 +195,7 @@ if __name__ == '__main__':
                 print('Complete.')
             else:
                 print('Complete. Removing workspace directory.')
+                cutil.db_remove(archive_target['id'])
                 shutil.rmtree(src_directory)
         elif args.operation == 'restore':
             archived = cutil.get_archived_projects()
@@ -215,6 +219,7 @@ if __name__ == '__main__':
             with tarfile.open(tgz_path, "r:gz") as tar:
                 ### tar.add(src_directory, arcname=os.path.basename(src_directory))
                 tar.extractall(path=uncomp_directory)
+            cutil.add(archive_target['id'])
             if args.preserve:
                 print('Complete.')
             else:
