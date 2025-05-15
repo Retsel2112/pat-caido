@@ -9,17 +9,29 @@ from urllib.request import pathname2url
 
 class CaidoUtil:
 
-    def __init__(self, caido_home=None):
+    def __init__(self, caido_home=None, read_only=True):
         self.data_path = caido_home
+        self.read_only = read_only
+        # Lets us reuse the open helper function to reopen r/w
+        self.db = None
         if not caido_home:
             self.data_path = self.get_data_path()
         self.project_path = os.path.join(self.data_path, 'projects')
-        db_file = os.path.join(self.data_path, 'projects.db')
-        # IDEA: rw mode to update the DB?
-        db_uri = 'file:{}?mode=r'.format(pathname2url(db_file))
+        self.db_file = os.path.join(self.data_path, 'projects.db')
+        self.__open_db()
+
+    def __open_db(self):
+        ''' Open or reopen the DB at db_file, based on current state of read_only'''
+        if self.db != None:
+            self.db.close()
+            self.db = None
+        if self.read_only:
+            db_uri = 'file:{}?mode=r'.format(pathname2url(self.db_file))
+        else:
+            db_uri = 'file:{}?mode=rw'.format(pathname2url(self.db_file))
         # Use uri-like path to prevent file creation
         try:
-            self.db = sqlite3.connect(db_file, uri=True)
+            self.db = sqlite3.connect(self.db_file, uri=True)
         except sqlite3.OperationalError:
             #missing DB
             self.data_path = None
@@ -109,6 +121,11 @@ class CaidoUtil:
         ''' Default archive directory is same as project path, but reasonable to be changed'''
         return self.project_path
 
+    def db_add(self):
+        pass
+
+    def db_remove(self):
+        pass
 
 
 #remove archived project
@@ -122,7 +139,6 @@ class CaidoUtil:
 
 #include an option for --data-path
 if __name__ == '__main__':
-    cutil = CaidoUtil()
     parser = argparse.ArgumentParser(
             prog='pat-caido',
             description='Project Archive Tool for Caido Workspaces',
@@ -134,6 +150,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--modify', action='store_true',
             help='Modify the Caido projects.db file to reflect changes')
     args = parser.parse_args()
+    cutil = CaidoUtil(read_only = args.modify)
     if args.operation == 'list':
         active = cutil.get_active_projects()
         archived = cutil.get_archived_projects()
@@ -202,5 +219,6 @@ if __name__ == '__main__':
                 print('Complete.')
             else:
                 print('Complete. Removing workspace archive.')
+                os.path.remove(tgz_path)
             pass
         
