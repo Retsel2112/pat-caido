@@ -130,15 +130,35 @@ class CaidoUtil:
     #  "status" TEXT NOT NULL DEFAULT 'ready', selected_at datetime);
     def db_add(self, projectid):
         ''' Read the project config to re-insert the project record'''
-        pass
+        src_file = os.path.join(self.get_project_directory_by_id(projectid), 'metadata.txt')
+        cur = self.db.cursor()
+        with open(src_file, 'r') as fin:
+            ls = fin.read()
+            parts = ls.split('\n')
+            # res = cur.execute('INSERT id, name, version, created_at, updated_at, status INTO projects WHERE id = ?', (projectid,))
+            res = cur.execute('INSERT INTO projects VALUES (?,?,?,?,?,?)', parts)
+            cur.commit()
 
     def db_remove(self, projectid):
         ''' Remove the project from the db, based on project ID'''
-        pass
+        cur = self.db.cursor()
+        # TODO: I don't like testing this part.
+        #res = cur.execute('DELETE FROM projects WHERE id = ?', (projectid,))
+        #cur.commit()
 
     def db_record(self, projectid):
         ''' Create the project config txt file in the project directory from the DB record'''
-        pass
+        cur = self.db.cursor()
+        res = cur.execute('SELECT id, name, version, created_at, updated_at, status FROM projects WHERE id = ?', (projectid,))
+        result_record = cur.fetchone()
+        # Maybe add a 'verbose' flag at some point.
+        #print(result_record)
+        dest_dir = self.get_project_directory_by_id(projectid)
+        dest_file = os.path.join(dest_dir, 'metadata.txt')
+        with open(dest_file, 'w') as fout:
+            for rec in result_record:
+                fout.write(rec)
+                fout.write('\n')
 
 
 
