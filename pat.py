@@ -136,7 +136,7 @@ class CaidoUtil:
             ls = fin.read()
             parts = ls.split('\n')
             # res = cur.execute('INSERT id, name, version, created_at, updated_at, status INTO projects WHERE id = ?', (projectid,))
-            res = cur.execute('INSERT INTO projects VALUES (?,?,?,?,?,?)', parts)
+            res = cur.execute('INSERT INTO projects(id, name, version, created_at, updated_at, status) VALUES (?,?,?,?,?,?)', parts)
             cur.commit()
 
     def db_remove(self, projectid):
