@@ -134,17 +134,22 @@ class CaidoUtil:
         cur = self.db.cursor()
         with open(src_file, 'r') as fin:
             ls = fin.read()
-            parts = ls.split('\n')
+            parts = ls.strip().split('\n')
             # res = cur.execute('INSERT id, name, version, created_at, updated_at, status INTO projects WHERE id = ?', (projectid,))
-            res = cur.execute('INSERT INTO projects(id, name, version, created_at, updated_at, status) VALUES (?,?,?,?,?,?)', parts)
-            cur.commit()
+            print(parts)
+            try:
+                res = cur.execute('INSERT INTO projects(id, name, version, created_at, updated_at, status) VALUES (?,?,?,?,?,?)', parts)
+                cur.commit()
+            except sqlite3.IntegrityError:
+                print('Project name already found in DB. Not able to INSERT record.')
 
     def db_remove(self, projectid):
         ''' Remove the project from the db, based on project ID'''
         cur = self.db.cursor()
         # TODO: I don't like testing this part.
-        #res = cur.execute('DELETE FROM projects WHERE id = ?', (projectid,))
-        #cur.commit()
+        print('DELETE FROM projects WHERE id = ?')
+        print(projectid)
+        res = cur.execute('DELETE FROM projects WHERE id = ?', (projectid,))
 
     def db_record(self, projectid):
         ''' Create the project config txt file in the project directory from the DB record'''
@@ -241,11 +246,11 @@ if __name__ == '__main__':
             with tarfile.open(tgz_path, "r:gz") as tar:
                 ### tar.add(src_directory, arcname=os.path.basename(src_directory))
                 tar.extractall(path=uncomp_directory)
-            cutil.add(archive_target['id'])
+            cutil.db_add(archive_target['id'])
             if args.preserve:
                 print('Complete.')
             else:
                 print('Complete. Removing workspace archive.')
-                os.path.remove(tgz_path)
+                os.remove(tgz_path)
             pass
         
