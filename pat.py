@@ -20,6 +20,12 @@ class CaidoUtil:
         self.db_file = os.path.join(self.data_path, 'projects.db')
         self.__open_db()
 
+    def __del__(self):
+        ''' Clean self up'''
+        if self.db != None:
+            self.db.close()
+        # Everything else should just be boring things we don't care about
+
     def __open_db(self):
         ''' Open or reopen the DB at db_file, based on current state of read_only'''
         if self.db != None:
@@ -63,7 +69,7 @@ class CaidoUtil:
         for row in loft:
             # "archived" projects w/o a Caido launch will still be in the DB
             # remove results without project folders
-            print(os.path.join(self.project_path, row[0]))
+            # print(os.path.join(self.project_path, row[0]))
             if os.path.isdir(os.path.join(self.project_path, row[0])):
                 results.append({'id': row[0], 'name': row[1]})
         return results
@@ -127,7 +133,8 @@ class CaidoUtil:
     #  version text NOT NULL,
     #  created_at datetime NOT NULL,
     #  updated_at datetime NOT NULL,
-    #  "status" TEXT NOT NULL DEFAULT 'ready', selected_at datetime);
+    #  "status" TEXT NOT NULL DEFAULT 'ready',
+    #  selected_at datetime);
     def db_add(self, projectid):
         ''' Read the project config to re-insert the project record'''
         src_file = os.path.join(self.get_project_directory_by_id(projectid), 'metadata.txt')
@@ -135,27 +142,26 @@ class CaidoUtil:
         with open(src_file, 'r') as fin:
             ls = fin.read()
             parts = ls.strip().split('\n')
-            # res = cur.execute('INSERT id, name, version, created_at, updated_at, status INTO projects WHERE id = ?', (projectid,))
-            print(parts)
+            # print(parts)
             try:
-                res = cur.execute('INSERT INTO projects(id, name, version, created_at, updated_at, status) VALUES (?,?,?,?,?,?)', parts)
-                cur.commit()
+                res = cur.execute('INSERT INTO projects \
+                        (id, name, version, created_at, updated_at, status, selected_at) \
+                        VALUES (?,?,?,?,?,?,?)', parts)
+                self.db.commit()
             except sqlite3.IntegrityError:
                 print('Project name already found in DB. Not able to INSERT record.')
 
     def db_remove(self, projectid):
         ''' Remove the project from the db, based on project ID'''
         cur = self.db.cursor()
-        # TODO: I don't like testing this part.
-        print('DELETE FROM projects WHERE id = ?')
-        print(projectid)
+        # I don't like testing this part.
         res = cur.execute('DELETE FROM projects WHERE id = ?', (projectid,))
         self.db.commit()
 
     def db_record(self, projectid):
         ''' Create the project config txt file in the project directory from the DB record'''
         cur = self.db.cursor()
-        res = cur.execute('SELECT id, name, version, created_at, updated_at, status FROM projects WHERE id = ?', (projectid,))
+        res = cur.execute('SELECT id, name, version, created_at, updated_at, status, selected_at FROM projects WHERE id = ?', (projectid,))
         result_record = cur.fetchone()
         # Maybe add a 'verbose' flag at some point.
         #print(result_record)
