@@ -150,6 +150,7 @@ class CaidoUtil:
         print('DELETE FROM projects WHERE id = ?')
         print(projectid)
         res = cur.execute('DELETE FROM projects WHERE id = ?', (projectid,))
+        self.db.commit()
 
     def db_record(self, projectid):
         ''' Create the project config txt file in the project directory from the DB record'''
