@@ -155,8 +155,8 @@ class CaidoUtil:
             # print(parts)
             try:
                 _ = cur.execute('INSERT INTO projects \
-                        (id, name, version, created_at, updated_at, status, selected_at) \
-                        VALUES (?,?,?,?,?,?,?)', parts)
+                        (id, name, version, created_at, updated_at) \
+                        VALUES (?,?,?,?,?)', parts)
                 self.db_conn.commit()
             except sqlite3.IntegrityError:
                 print('Project name already found in DB. Not able to INSERT record.')
@@ -171,7 +171,7 @@ class CaidoUtil:
     def db_record(self, projectid):
         ''' Create the project config txt file in the project directory from the DB record'''
         cur = self.db_conn.cursor()
-        _ = cur.execute('SELECT id, name, version, created_at, updated_at, status, selected_at \
+        _ = cur.execute('SELECT id, name, version, created_at, updated_at \
                 FROM projects WHERE id = ?', (projectid,))
         result_record = cur.fetchone()
         # Maybe add a 'verbose' flag at some point.
